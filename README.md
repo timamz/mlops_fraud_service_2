@@ -45,7 +45,7 @@ After the stack is up:
 ## 🛠️ Usage
 
 1. Open the Streamlit UI.
-2. Upload a CSV from the competition (e.g., `input/test.csv`).
+2. Upload a CSV from the competition (e.g., `input/test.csv` or `input/test_small.csv` for quick check).
 3. Click “Send to Kafka” — each row streams into the `transactions` topic.
 4. Click “View results”:
    - See the last 10 transactions with `fraud_flag == 1` (if any exist).

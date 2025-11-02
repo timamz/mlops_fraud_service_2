@@ -91,8 +91,7 @@ class ScoreStoreService:
                 values (%s, %s, %s)
                 on conflict (transaction_id) do update
                 set score = excluded.score,
-                    fraud_flag = excluded.fraud_flag,
-                    created_at = now()
+                    fraud_flag = excluded.fraud_flag
                 """,
                 (transaction_id, float(score), int(fraud_flag)),
             )
