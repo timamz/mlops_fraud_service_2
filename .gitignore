@@ -1,4 +1,5 @@
 .DS_Store
+.reference_repo
 .train_model/data/
 .train_model/submissions/
 __pycache__/
