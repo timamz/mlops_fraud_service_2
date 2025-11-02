@@ -1,11 +1,5 @@
 # Real-Time Fraud Detection System
 
-DISCLAIMER
-
-The service is provided for educational purposes for the MTS / Yandex School of Data Analysis 2025 MLOps course. Datasets originate from the competition https://www.kaggle.com/competitions/teta-ml-1-2025
-
-A streaming system for fraud detection that evaluates transactions with a pre-trained ML model using Kafka and PostgreSQL. Inference runs on CPU only.
-
 ## 🏗️ Architecture
 
 1. **`interface`** (Streamlit UI):
