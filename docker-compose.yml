@@ -1,0 +1,141 @@
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.3.0
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    networks:
+      - fraud-net
+    ports:
+      - "2181:2181"
+
+  kafka:
+    image: confluentinc/cp-kafka:7.3.0
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:9095
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+    networks:
+      - fraud-net
+    ports:
+      - "9095:9095"
+    healthcheck:
+      test: ["CMD", "kafka-topics", "--bootstrap-server", "localhost:9095", "--list"]
+      interval: 5s
+      timeout: 10s
+      retries: 10
+
+  kafka-setup:
+    image: confluentinc/cp-kafka:7.3.0
+    depends_on:
+      kafka:
+        condition: service_healthy
+    networks:
+      - fraud-net
+    restart: on-failure
+    entrypoint: ["/bin/bash", "-c"]
+    command: |
+      "
+      echo 'Waiting for Kafka...'
+      while ! kafka-topics --bootstrap-server kafka:9092 --list; do
+        sleep 1
+      done
+
+      echo 'Creating topics...'
+      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic transactions --partitions 3 --replication-factor 1 --config retention.ms=604800000
+      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic scoring --partitions 3 --replication-factor 1 --config retention.ms=604800000
+
+      echo 'Topics created:'
+      kafka-topics --bootstrap-server kafka:9092 --list
+      "
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    depends_on:
+      - kafka
+    networks:
+      - fraud-net
+    ports:
+      - "8080:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+      KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: fraud
+      POSTGRES_USER: fraud
+      POSTGRES_PASSWORD: fraud
+    networks:
+      - fraud-net
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  fraud_detector:
+    build: .
+    depends_on:
+      kafka-setup:
+        condition: service_completed_successfully
+    networks:
+      - fraud-net
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      KAFKA_TRANSACTIONS_TOPIC: transactions
+      KAFKA_SCORING_TOPIC: scoring
+      MODELS_DIR: /app/models
+      PREPROCESSORS_DIR: /app/preprocessors
+
+  score_store:
+    build: ./score_store
+    depends_on:
+      kafka-setup:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_started
+    networks:
+      - fraud-net
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      KAFKA_SCORING_TOPIC: scoring
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: fraud
+      DB_USER: fraud
+      DB_PASSWORD: fraud
+
+  interface:
+    build: ./interface
+    depends_on:
+      - kafka
+      - postgres
+    networks:
+      - fraud-net
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      KAFKA_TRANSACTIONS_TOPIC: transactions
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: fraud
+      DB_USER: fraud
+      DB_PASSWORD: fraud
+    ports:
+      - "8501:8501"
+
+networks:
+  fraud-net:
+    name: fraud-net
+
+volumes:
+  pgdata:

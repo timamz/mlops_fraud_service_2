@@ -10,8 +10,5 @@ COPY app ./app
 COPY models ./models
 COPY preprocessors ./preprocessors
 RUN chmod -R 444 /app/models
-RUN mkdir -p /app/input /app/output /app/logs && chmod -R 777 /app/input /app/output /app/logs
-
-VOLUME /app/input
-VOLUME /app/output
+RUN mkdir -p /app/logs && chmod -R 777 /app/logs
 CMD ["python", "app/app.py"]

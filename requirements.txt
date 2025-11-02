@@ -1,4 +1,4 @@
 pandas
 scikit-learn
 matplotlib
-watchdog
+confluent-kafka
