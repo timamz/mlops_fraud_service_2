@@ -95,7 +95,7 @@ Example output:
 │   ├── Dockerfile
 │   ├── requirements.txt
 │   └── app.py
-└── input/test.csv
+├── input/test.csv
 └── input/test_small.csv
 ```
 
