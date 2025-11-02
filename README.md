@@ -96,6 +96,7 @@ Example output:
 │   ├── requirements.txt
 │   └── app.py
 └── input/test.csv
+└── input/test_small.csv
 ```
 
 ## ⚙️ Kafka & Environment
